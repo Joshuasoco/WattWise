@@ -1,80 +1,54 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
-import '../features/calculator/view/calculator_page.dart';
-import '../features/calculator/view/config_page.dart';
-import '../features/history/view/history_page.dart';
-import '../features/settings/view/onboarding_page.dart';
+import '../features/dashboard/view/dashboard_screen.dart';
+import '../features/onboarding/view/onboarding_shell.dart';
 import '../features/settings/view/settings_page.dart';
-import '../shared/widgets/app_shell.dart';
 
 class AppRouter {
-  static GoRouter createRouter({required bool showOnboarding}) {
+  static GoRouter createRouter() {
     return GoRouter(
-      initialLocation: showOnboarding ? '/onboarding' : '/home',
+      initialLocation: '/',
+      redirect: (BuildContext context, GoRouterState state) {
+        final box = Hive.box<dynamic>('wattwise_prefs');
+        final onboardingComplete =
+            (box.get('onboarding_complete', defaultValue: false) as bool?) ??
+            false;
+
+        if (state.matchedLocation == '/') {
+          return onboardingComplete ? '/dashboard' : '/onboarding';
+        }
+
+        if (!onboardingComplete && state.matchedLocation == '/dashboard') {
+          return '/onboarding';
+        }
+
+        if (onboardingComplete && state.matchedLocation == '/onboarding') {
+          return '/dashboard';
+        }
+
+        return null;
+      },
       routes: <RouteBase>[
+        GoRoute(path: '/', builder: (_, __) => const SizedBox.shrink()),
         GoRoute(
           path: '/onboarding',
-          name: 'onboarding',
           builder: (BuildContext context, GoRouterState state) {
-            return const OnboardingPage();
+            return const OnboardingShell();
           },
         ),
-        StatefulShellRoute.indexedStack(
-          builder:
-              (
-                BuildContext context,
-                GoRouterState state,
-                StatefulNavigationShell navigationShell,
-              ) {
-                return AppShell(navigationShell: navigationShell);
-              },
-          branches: <StatefulShellBranch>[
-            StatefulShellBranch(
-              routes: <RouteBase>[
-                GoRoute(
-                  path: '/home',
-                  name: 'home',
-                  builder: (BuildContext context, GoRouterState state) {
-                    return const CalculatorPage();
-                  },
-                ),
-              ],
-            ),
-            StatefulShellBranch(
-              routes: <RouteBase>[
-                GoRoute(
-                  path: '/config',
-                  name: 'config',
-                  builder: (BuildContext context, GoRouterState state) {
-                    return const ConfigPage();
-                  },
-                ),
-              ],
-            ),
-            StatefulShellBranch(
-              routes: <RouteBase>[
-                GoRoute(
-                  path: '/history',
-                  name: 'history',
-                  builder: (BuildContext context, GoRouterState state) {
-                    return const HistoryPage();
-                  },
-                ),
-              ],
-            ),
-            StatefulShellBranch(
-              routes: <RouteBase>[
-                GoRoute(
-                  path: '/settings',
-                  name: 'settings',
-                  builder: (BuildContext context, GoRouterState state) {
-                    return const SettingsPage();
-                  },
-                ),
-              ],
-            ),
-          ],
+        GoRoute(
+          path: '/dashboard',
+          builder: (BuildContext context, GoRouterState state) {
+            return const DashboardScreen();
+          },
+        ),
+        GoRoute(
+          path: '/settings',
+          builder: (BuildContext context, GoRouterState state) {
+            return const SettingsPage();
+          },
         ),
       ],
     );

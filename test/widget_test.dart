@@ -15,8 +15,6 @@ import 'package:watt_tracker/data/local/hive_adapters.dart';
 import 'package:watt_tracker/data/models/component_model.dart';
 import 'package:watt_tracker/data/models/device_model.dart';
 import 'package:watt_tracker/data/models/session_model.dart';
-import 'package:watt_tracker/data/repositories/app_preferences_repository.dart';
-import 'package:watt_tracker/data/repositories/wattage_repository.dart';
 import 'package:watt_tracker/main.dart';
 
 void main() {
@@ -46,29 +44,35 @@ void main() {
       Hive.openBox<ComponentModel>(HiveBoxes.components),
       Hive.openBox<SessionModel>(HiveBoxes.sessions),
       Hive.openBox<dynamic>(HiveBoxes.appPreferences),
+      Hive.openBox<dynamic>(HiveBoxes.wattwisePrefs),
     ]);
 
-    final prefs = AppPreferencesRepository();
-    await prefs.setOnboardingCompleted(true);
+    final prefs = Hive.box<dynamic>(HiveBoxes.wattwisePrefs);
+    await prefs.put('onboarding_complete', true);
+    await prefs.put('cpu_name', 'Test CPU');
+    await prefs.put('gpu_type', 'integrated');
+    await prefs.put('gpu_name', 'Integrated Graphics');
+    await prefs.put('ram_gb', 8);
+    await prefs.put('ram_sticks', 1);
+    await prefs.put('storage_count', 1);
+    await prefs.put('storage_type', 'SSD');
+    await prefs.put('fan_count', 1);
+    await prefs.put('has_rgb', false);
+    await prefs.put('motherboard', 'Test Board');
+    await prefs.put('chassis_type', 'desktop');
+    await prefs.put('electricity_rate', 12.0);
+    await prefs.put('currency_symbol', '₱');
+    await prefs.put('daily_hours', 8.0);
   });
 
   tearDownAll(() async {
     await Hive.close();
   });
 
-  testWidgets('App boots on calculator page', (WidgetTester tester) async {
-    final wattageRepository = WattageRepository();
-    await wattageRepository.seedPresetsIfEmpty();
-    final prefsRepository = AppPreferencesRepository();
-
-    await tester.pumpWidget(
-      WattTrackerApp(
-        wattageRepository: wattageRepository,
-        preferencesRepository: prefsRepository,
-      ),
-    );
+  testWidgets('App boots on dashboard', (WidgetTester tester) async {
+    await tester.pumpWidget(const WattWiseApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Device Selector'), findsOneWidget);
+    expect(find.text('Test CPU'), findsOneWidget);
   });
 }
