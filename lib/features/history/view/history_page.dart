@@ -131,7 +131,10 @@ class _HistoryPageState extends State<HistoryPage> {
                                 ),
                               ),
                               subtitle: Text(
-                                '${session.durationMinutes} min - ${session.createdAt.toLocal()}',
+                                session.startedAt != null &&
+                                        session.endedAt != null
+                                    ? '${session.durationMinutes} min - ${session.startedAt!.toLocal()} to ${session.endedAt!.toLocal()}'
+                                    : '${session.durationMinutes} min - ${session.createdAt.toLocal()}',
                               ),
                               trailing: IconButton(
                                 onPressed: () => context

@@ -28,6 +28,9 @@ class CostCalculatorState {
     this.ratePerKwh = 0,
     this.hours = 0,
     this.loadProfile = PerformanceLoadProfile.balanced,
+    this.isSessionRunning = false,
+    this.elapsedSessionSeconds = 0,
+    this.sessionStartedAt,
   });
 
   final double deviceWattage;
@@ -43,6 +46,9 @@ class CostCalculatorState {
   final double ratePerKwh;
   final double hours;
   final PerformanceLoadProfile loadProfile;
+  final bool isSessionRunning;
+  final int elapsedSessionSeconds;
+  final DateTime? sessionStartedAt;
 
   double get totalWatts {
     final gpu = isGpuEnabled ? gpuWattage : 0;
@@ -56,6 +62,14 @@ class CostCalculatorState {
     return (totalWatts * loadProfile.multiplierPercent / 1000) *
         ratePerKwh *
         hours;
+  }
+
+  double get liveSessionHours => elapsedSessionSeconds / 3600;
+
+  double get liveSessionCost {
+    return (totalWatts * loadProfile.multiplierPercent / 1000) *
+        ratePerKwh *
+        liveSessionHours;
   }
 
   CostCalculatorState copyWith({
@@ -72,6 +86,10 @@ class CostCalculatorState {
     double? ratePerKwh,
     double? hours,
     PerformanceLoadProfile? loadProfile,
+    bool? isSessionRunning,
+    int? elapsedSessionSeconds,
+    DateTime? sessionStartedAt,
+    bool clearSessionStartedAt = false,
   }) {
     return CostCalculatorState(
       deviceWattage: deviceWattage ?? this.deviceWattage,
@@ -88,6 +106,12 @@ class CostCalculatorState {
       ratePerKwh: ratePerKwh ?? this.ratePerKwh,
       hours: hours ?? this.hours,
       loadProfile: loadProfile ?? this.loadProfile,
+      isSessionRunning: isSessionRunning ?? this.isSessionRunning,
+      elapsedSessionSeconds:
+          elapsedSessionSeconds ?? this.elapsedSessionSeconds,
+      sessionStartedAt: clearSessionStartedAt
+          ? null
+          : sessionStartedAt ?? this.sessionStartedAt,
     );
   }
 }

@@ -183,10 +183,26 @@ class ConfigPage extends StatelessWidget {
                         label: 'Rate per kWh',
                         value: state.ratePerKwh,
                         onChanged: (v) {
+                          if (v <= 0) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Rate must be greater than 0.'),
+                              ),
+                            );
+                            return;
+                          }
                           context.read<CostCalculatorCubit>().setRatePerKwh(v);
                           context.read<SettingsCubit>().setDefaultRatePerKwh(v);
                         },
                       ),
+                      if (state.ratePerKwh <= 0)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: Text(
+                            'Please enter a valid rate greater than 0.',
+                            style: TextStyle(color: Colors.redAccent),
+                          ),
+                        ),
                     ],
                   ),
                 ),

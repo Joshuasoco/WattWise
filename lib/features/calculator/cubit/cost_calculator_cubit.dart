@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:async';
 
 import '../../../../data/models/component_model.dart';
 import '../../../../data/models/device_model.dart';
@@ -6,6 +7,8 @@ import 'cost_calculator_state.dart';
 
 class CostCalculatorCubit extends Cubit<CostCalculatorState> {
   CostCalculatorCubit() : super(const CostCalculatorState());
+
+  Timer? _ticker;
 
   void setDevice(DeviceModel device) {
     emit(state.copyWith(deviceWattage: device.wattage));
@@ -95,5 +98,48 @@ class CostCalculatorCubit extends Cubit<CostCalculatorState> {
         rgbWattage: rgbWattage,
       ),
     );
+  }
+
+  void startSession() {
+    if (state.isSessionRunning) return;
+    final startedAt = DateTime.now();
+    emit(
+      state.copyWith(
+        isSessionRunning: true,
+        elapsedSessionSeconds: 0,
+        sessionStartedAt: startedAt,
+      ),
+    );
+
+    _ticker?.cancel();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      emit(
+        state.copyWith(elapsedSessionSeconds: state.elapsedSessionSeconds + 1),
+      );
+    });
+  }
+
+  void stopSession() {
+    _ticker?.cancel();
+    _ticker = null;
+    emit(state.copyWith(isSessionRunning: false));
+  }
+
+  void resetSessionTimer() {
+    _ticker?.cancel();
+    _ticker = null;
+    emit(
+      state.copyWith(
+        isSessionRunning: false,
+        elapsedSessionSeconds: 0,
+        clearSessionStartedAt: true,
+      ),
+    );
+  }
+
+  @override
+  Future<void> close() {
+    _ticker?.cancel();
+    return super.close();
   }
 }

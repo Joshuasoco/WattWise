@@ -31,6 +31,11 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: AppBar(title: const Text('Settings')),
       body: BlocBuilder<SettingsCubit, SettingsState>(
         builder: (context, state) {
+          final normalizedText = state.defaultRatePerKwh.toStringAsFixed(2);
+          if (_rateController.text != normalizedText) {
+            _rateController.text = normalizedText;
+          }
+
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -116,8 +121,19 @@ class _SettingsPageState extends State<SettingsPage> {
                         border: OutlineInputBorder(),
                       ),
                       onSubmitted: (value) {
-                        final parsed =
-                            double.tryParse(value) ?? state.defaultRatePerKwh;
+                        final parsed = double.tryParse(value.trim());
+                        if (parsed == null || parsed <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Please enter a valid rate greater than 0.',
+                              ),
+                            ),
+                          );
+                          _rateController.text = state.defaultRatePerKwh
+                              .toStringAsFixed(2);
+                          return;
+                        }
                         context.read<SettingsCubit>().setDefaultRatePerKwh(
                           parsed,
                         );

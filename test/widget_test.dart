@@ -15,6 +15,8 @@ import 'package:watt_tracker/data/local/hive_adapters.dart';
 import 'package:watt_tracker/data/models/component_model.dart';
 import 'package:watt_tracker/data/models/device_model.dart';
 import 'package:watt_tracker/data/models/session_model.dart';
+import 'package:watt_tracker/data/repositories/app_preferences_repository.dart';
+import 'package:watt_tracker/data/repositories/wattage_repository.dart';
 import 'package:watt_tracker/main.dart';
 
 void main() {
@@ -43,7 +45,11 @@ void main() {
       Hive.openBox<DeviceModel>(HiveBoxes.devices),
       Hive.openBox<ComponentModel>(HiveBoxes.components),
       Hive.openBox<SessionModel>(HiveBoxes.sessions),
+      Hive.openBox<dynamic>(HiveBoxes.appPreferences),
     ]);
+
+    final prefs = AppPreferencesRepository();
+    await prefs.setOnboardingCompleted(true);
   });
 
   tearDownAll(() async {
@@ -51,7 +57,16 @@ void main() {
   });
 
   testWidgets('App boots on calculator page', (WidgetTester tester) async {
-    await tester.pumpWidget(const WattTrackerApp());
+    final wattageRepository = WattageRepository();
+    await wattageRepository.seedPresetsIfEmpty();
+    final prefsRepository = AppPreferencesRepository();
+
+    await tester.pumpWidget(
+      WattTrackerApp(
+        wattageRepository: wattageRepository,
+        preferencesRepository: prefsRepository,
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Device Selector'), findsOneWidget);

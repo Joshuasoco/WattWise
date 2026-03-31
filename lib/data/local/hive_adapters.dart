@@ -119,13 +119,15 @@ class SessionModelAdapter extends TypeAdapter<SessionModel> {
       ratePerKwh: fields[2] as double,
       totalCost: fields[3] as double,
       createdAt: fields[4] as DateTime,
+      startedAt: fields[5] as DateTime?,
+      endedAt: fields[6] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, SessionModel obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -135,6 +137,10 @@ class SessionModelAdapter extends TypeAdapter<SessionModel> {
       ..writeByte(3)
       ..write(obj.totalCost)
       ..writeByte(4)
-      ..write(obj.createdAt);
+      ..write(obj.createdAt)
+      ..writeByte(5)
+      ..write(obj.startedAt)
+      ..writeByte(6)
+      ..write(obj.endedAt);
   }
 }

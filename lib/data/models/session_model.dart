@@ -5,6 +5,8 @@ class SessionModel {
     required this.ratePerKwh,
     required this.totalCost,
     required this.createdAt,
+    this.startedAt,
+    this.endedAt,
   });
 
   final String id;
@@ -12,6 +14,8 @@ class SessionModel {
   final double ratePerKwh;
   final double totalCost;
   final DateTime createdAt;
+  final DateTime? startedAt;
+  final DateTime? endedAt;
 
   SessionModel copyWith({
     String? id,
@@ -19,6 +23,8 @@ class SessionModel {
     double? ratePerKwh,
     double? totalCost,
     DateTime? createdAt,
+    DateTime? startedAt,
+    DateTime? endedAt,
   }) {
     return SessionModel(
       id: id ?? this.id,
@@ -26,6 +32,8 @@ class SessionModel {
       ratePerKwh: ratePerKwh ?? this.ratePerKwh,
       totalCost: totalCost ?? this.totalCost,
       createdAt: createdAt ?? this.createdAt,
+      startedAt: startedAt ?? this.startedAt,
+      endedAt: endedAt ?? this.endedAt,
     );
   }
 }

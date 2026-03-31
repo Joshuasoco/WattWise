@@ -39,6 +39,10 @@ class _CalculatorPageState extends State<CalculatorPage> {
             builder: (context, settingsState) {
               final dailyEstimate = calcState.totalCost;
               final monthlyEstimate = dailyEstimate * 30;
+              final liveCost = calcState.isSessionRunning
+                  ? calcState.liveSessionCost
+                  : calcState.totalCost;
+              final hasValidRate = calcState.ratePerKwh > 0;
 
               return LayoutBuilder(
                 builder: (context, constraints) {
@@ -56,7 +60,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
                         ),
                         const SizedBox(height: 8),
                         TweenAnimationBuilder<double>(
-                          tween: Tween<double>(end: calcState.totalCost),
+                          tween: Tween<double>(end: liveCost),
                           duration: const Duration(milliseconds: 350),
                           builder: (context, value, _) {
                             return Text(
@@ -68,6 +72,10 @@ class _CalculatorPageState extends State<CalculatorPage> {
                         const SizedBox(height: 12),
                         Text(
                           'Total watts: ${calcState.totalWatts.toStringAsFixed(1)} W',
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Session timer: ${_formatDuration(calcState.elapsedSessionSeconds)}',
                         ),
                       ],
                     ),
@@ -105,6 +113,14 @@ class _CalculatorPageState extends State<CalculatorPage> {
                             context.read<CostCalculatorCubit>().setHours(value);
                           },
                         ),
+                        if (!hasValidRate)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8),
+                            child: Text(
+                              'Set a rate greater than 0 in Config or Settings.',
+                              style: TextStyle(color: Colors.redAccent),
+                            ),
+                          ),
                       ],
                     ),
                   );
@@ -150,24 +166,64 @@ class _CalculatorPageState extends State<CalculatorPage> {
                                 .read<WattageRepository>();
                             final historyCubit = context.read<HistoryCubit>();
                             final messenger = ScaffoldMessenger.of(context);
-                            final now = DateTime.now();
+                            final calculatorCubit = context
+                                .read<CostCalculatorCubit>();
+
+                            if (!hasValidRate) {
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Electricity rate must be greater than 0.',
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
+
+                            if (!calcState.isSessionRunning) {
+                              calculatorCubit.startSession();
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Session started'),
+                                ),
+                              );
+                              return;
+                            }
+
+                            calculatorCubit.stopSession();
+                            final endedAt = DateTime.now();
+                            final startedAt = calcState.sessionStartedAt;
                             final session = SessionModel(
-                              id: now.microsecondsSinceEpoch.toString(),
-                              durationMinutes: (calcState.hours * 60).round(),
+                              id: endedAt.microsecondsSinceEpoch.toString(),
+                              durationMinutes:
+                                  (calcState.elapsedSessionSeconds / 60)
+                                      .round(),
                               ratePerKwh: calcState.ratePerKwh,
-                              totalCost: calcState.totalCost,
-                              createdAt: now,
+                              totalCost: calcState.liveSessionCost,
+                              createdAt: endedAt,
+                              startedAt: startedAt,
+                              endedAt: endedAt,
                             );
+
                             await repository.saveSession(session);
                             historyCubit.loadSessions();
+                            calculatorCubit.resetSessionTimer();
                             messenger.showSnackBar(
                               const SnackBar(
-                                content: Text('Session saved to history'),
+                                content: Text('Session stopped and saved'),
                               ),
                             );
                           },
-                          icon: const Icon(Icons.save_alt),
-                          label: const Text('Save Session'),
+                          icon: Icon(
+                            calcState.isSessionRunning
+                                ? Icons.stop_circle_outlined
+                                : Icons.play_circle_outline,
+                          ),
+                          label: Text(
+                            calcState.isSessionRunning
+                                ? 'Stop Session'
+                                : 'Start Session',
+                          ),
                         ),
                       ],
                     ),
@@ -198,5 +254,15 @@ class _CalculatorPageState extends State<CalculatorPage> {
         },
       ),
     );
+  }
+
+  String _formatDuration(int totalSeconds) {
+    final hours = totalSeconds ~/ 3600;
+    final minutes = (totalSeconds % 3600) ~/ 60;
+    final seconds = totalSeconds % 60;
+    final hh = hours.toString().padLeft(2, '0');
+    final mm = minutes.toString().padLeft(2, '0');
+    final ss = seconds.toString().padLeft(2, '0');
+    return '$hh:$mm:$ss';
   }
 }

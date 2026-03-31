@@ -9,6 +9,7 @@ class HiveBoxes {
   static const String devices = 'devices_box';
   static const String components = 'components_box';
   static const String sessions = 'sessions_box';
+  static const String appPreferences = 'app_preferences_box';
 }
 
 class HiveBootstrap {
@@ -21,6 +22,7 @@ class HiveBootstrap {
       Hive.openBox<DeviceModel>(HiveBoxes.devices),
       Hive.openBox<ComponentModel>(HiveBoxes.components),
       Hive.openBox<SessionModel>(HiveBoxes.sessions),
+      Hive.openBox<dynamic>(HiveBoxes.appPreferences),
     ]);
   }
 
