@@ -1,29 +1,95 @@
+﻿import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:window_manager/window_manager.dart';
 
-import '../../../data/repositories/wattwise_prefs_repository.dart';
+import '../../../app/window_close_handler.dart';
+import '../../../data/services/tray_service.dart';
 import '../cubit/live_timer_cubit.dart';
 import '../cubit/live_timer_state.dart';
 import 'widgets/component_breakdown.dart';
 import 'widgets/cost_ticker.dart';
 import 'widgets/estimate_cards.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) =>
-          LiveTimerCubit(prefsRepository: WattwisePrefsRepository()),
-      child: const _DashboardView(),
-    );
-  }
+  State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardView extends StatelessWidget {
-  const _DashboardView();
+class _DashboardScreenState extends State<DashboardScreen>
+    with WindowListener, WindowCloseHandler<DashboardScreen> {
+  late final LiveTimerCubit _timerCubit;
+  bool _trackingActivated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _timerCubit = context.read<LiveTimerCubit>();
+    _timerCubit.reloadPreferences();
+    _trackingActivated = TrayService().isInitialized;
+    initCloseHandler(_timerCubit);
+  }
+
+  Future<void> _handleTrackingToggle() async {
+    if (_trackingActivated) {
+      _timerCubit.pauseTimer();
+      await TrayService().dispose();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _trackingActivated = false;
+      });
+      return;
+    }
+
+    _timerCubit.startTimer();
+    await TrayService().init(_timerCubit);
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _trackingActivated = true;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Tracking active â€” you can close this window safely.'),
+      ),
+    );
+  }
+
+  void _handlePauseResume() {
+    if (!_trackingActivated) {
+      return;
+    }
+
+    if (_timerCubit.state.isRunning) {
+      _timerCubit.pauseTimer();
+    } else {
+      _timerCubit.startTimer();
+    }
+  }
+
+  void _handleReset() {
+    _timerCubit.resetTimer();
+  }
+
+  @override
+  void dispose() {
+    if (Platform.isWindows) {
+      windowManager.removeListener(this);
+      unawaited(windowManager.setPreventClose(false));
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,24 +120,12 @@ class _DashboardView extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               IconButton(
-                onPressed: () => context.go('/settings'),
+                onPressed: () => context.push('/settings'),
                 icon: const Icon(Icons.tune_rounded),
                 tooltip: 'Settings',
               ),
               const SizedBox(width: 8),
             ],
-          ),
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: () {
-              final cubit = context.read<LiveTimerCubit>();
-              if (state.isRunning) {
-                cubit.pauseTimer();
-              } else {
-                cubit.startTimer();
-              }
-            },
-            icon: Icon(state.isRunning ? Icons.pause : Icons.play_arrow),
-            label: Text(state.isRunning ? 'Pause Tracking' : 'Resume Tracking'),
           ),
           body: Center(
             child: ConstrainedBox(
@@ -88,14 +142,9 @@ class _DashboardView extends StatelessWidget {
                         Wrap(
                           spacing: 12,
                           runSpacing: 12,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            _TopPill(
-                              icon: state.isRunning
-                                  ? Icons.play_circle_fill_rounded
-                                  : Icons.pause_circle_filled_rounded,
-                              label:
-                                  state.isRunning ? 'Tracking live' : 'Paused',
-                            ),
+                            _TrackingStatusChip(isRunning: state.isRunning),
                             _TopPill(
                               icon: Icons.schedule_rounded,
                               label:
@@ -105,6 +154,62 @@ class _DashboardView extends StatelessWidget {
                               icon: Icons.receipt_long_rounded,
                               label:
                                   '${state.currencySymbol}${state.ratePerKwh.toStringAsFixed(2)}/kWh',
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            FilledButton.tonalIcon(
+                              onPressed: _handleTrackingToggle,
+                              style: FilledButton.styleFrom(
+                                backgroundColor: _trackingActivated
+                                    ? const Color(0x331D9E75)
+                                    : const Color(0xFF1D9E75),
+                                foregroundColor: _trackingActivated
+                                    ? const Color(0xFF156A4F)
+                                    : Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 18,
+                                  vertical: 16,
+                                ),
+                              ),
+                              icon: Icon(
+                                _trackingActivated
+                                    ? Icons.stop_circle_outlined
+                                    : Icons.bolt_rounded,
+                              ),
+                              label: Text(
+                                _trackingActivated
+                                    ? 'Stop Tracking'
+                                    : 'Activate Tracking',
+                              ),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: _trackingActivated
+                                  ? _handlePauseResume
+                                  : null,
+                              icon: Icon(
+                                state.isRunning
+                                    ? Icons.pause_rounded
+                                    : Icons.play_arrow_rounded,
+                              ),
+                              label: Text(
+                                state.isRunning
+                                    ? 'Pause session'
+                                    : 'Resume session',
+                              ),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed:
+                                  state.elapsedSeconds > 0 ||
+                                      state.totalCostAccumulated > 0
+                                  ? _handleReset
+                                  : null,
+                              icon: const Icon(Icons.restart_alt_rounded),
+                              label: const Text('Reset session'),
                             ),
                           ],
                         ),
@@ -127,7 +232,10 @@ class _DashboardView extends StatelessWidget {
                               const SizedBox(width: 16),
                               Expanded(
                                 flex: 4,
-                                child: _DashboardContextPanel(state: state),
+                                child: _DashboardContextPanel(
+                                  state: state,
+                                  trackingActivated: _trackingActivated,
+                                ),
                               ),
                             ],
                           )
@@ -141,7 +249,10 @@ class _DashboardView extends StatelessWidget {
                             isRunning: state.isRunning,
                           ),
                           const SizedBox(height: 14),
-                          _DashboardContextPanel(state: state),
+                          _DashboardContextPanel(
+                            state: state,
+                            trackingActivated: _trackingActivated,
+                          ),
                         ],
                         const SizedBox(height: 22),
                         Text(
@@ -175,9 +286,13 @@ class _DashboardView extends StatelessWidget {
 }
 
 class _DashboardContextPanel extends StatelessWidget {
-  const _DashboardContextPanel({required this.state});
+  const _DashboardContextPanel({
+    required this.state,
+    required this.trackingActivated,
+  });
 
   final LiveTimerState state;
+  final bool trackingActivated;
 
   @override
   Widget build(BuildContext context) {
@@ -187,7 +302,10 @@ class _DashboardContextPanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Session context', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Session context',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 14),
             _ContextRow(
               label: 'Elapsed',
@@ -208,12 +326,12 @@ class _DashboardContextPanel extends StatelessWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFFF3F3F1),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Theme.of(context).colorScheme.outline),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
               ),
               child: Text(
-                state.isRunning
-                    ? 'Tracking is currently live. Pause if you want the ticker to stop accumulating cost.'
-                    : 'Tracking is paused. Resume whenever you want the live cost ticker to continue.',
+                _buildMessage(),
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
@@ -221,6 +339,18 @@ class _DashboardContextPanel extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _buildMessage() {
+    if (!trackingActivated) {
+      return 'Tracking is inactive. Activate it to create a tray icon and keep WattWise alive after closing the window.';
+    }
+
+    if (state.isRunning) {
+      return 'Tracking is currently live. You can close the window and WattWise will keep updating from the system tray.';
+    }
+
+    return 'Tracking stays armed in the tray while paused. Resume whenever you want the live cost ticker to continue.';
   }
 
   String _formatDuration(int totalSeconds) {
@@ -246,7 +376,9 @@ class _ContextRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Expanded(child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
+          Expanded(
+            child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
+          ),
           Text(
             value,
             style: Theme.of(
@@ -281,6 +413,39 @@ class _TopPill extends StatelessWidget {
           const SizedBox(width: 8),
           Text(label, style: Theme.of(context).textTheme.labelLarge),
         ],
+      ),
+    );
+  }
+}
+
+class _TrackingStatusChip extends StatelessWidget {
+  const _TrackingStatusChip({required this.isRunning});
+
+  final bool isRunning;
+
+  @override
+  Widget build(BuildContext context) {
+    final backgroundColor = isRunning
+        ? const Color(0xFFE0F4EC)
+        : const Color(0xFFE6E7EB);
+    final foregroundColor = isRunning
+        ? const Color(0xFF156A4F)
+        : const Color(0xFF4B5563);
+
+    return Chip(
+      backgroundColor: backgroundColor,
+      side: BorderSide.none,
+      avatar: Icon(
+        isRunning ? Icons.bolt_rounded : Icons.pause_circle_filled_rounded,
+        color: foregroundColor,
+        size: 18,
+      ),
+      label: Text(
+        isRunning ? 'Tracking' : 'Paused',
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+          color: foregroundColor,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

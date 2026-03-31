@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../data/models/system_spec_model.dart';
 import '../../../data/repositories/wattage_preset_repository.dart';
 import '../../../data/repositories/wattwise_prefs_repository.dart';
+import '../../../data/services/tray_service.dart';
+import '../../dashboard/cubit/live_timer_cubit.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -18,6 +21,7 @@ class _SettingsPageState extends State<SettingsPage> {
   late final TextEditingController _currencyController;
   late final TextEditingController _rateController;
   late final TextEditingController _hoursController;
+  late final TextEditingController _milestoneController;
 
   @override
   void initState() {
@@ -32,17 +36,25 @@ class _SettingsPageState extends State<SettingsPage> {
     _hoursController = TextEditingController(
       text: _prefsRepository.dailyHours.toStringAsFixed(1),
     );
+    _milestoneController = TextEditingController(
+      text: _prefsRepository.sessionMilestoneHours.toStringAsFixed(1),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final rate = double.tryParse(_rateController.text.trim()) ??
+    final rate =
+        double.tryParse(_rateController.text.trim()) ??
         _prefsRepository.electricityRate;
-    final hours = double.tryParse(_hoursController.text.trim()) ??
+    final hours =
+        double.tryParse(_hoursController.text.trim()) ??
         _prefsRepository.dailyHours;
     final symbol = _currencyController.text.trim().isEmpty
         ? '\u20B1'
         : _currencyController.text.trim();
+    final milestone =
+        double.tryParse(_milestoneController.text.trim()) ??
+        _prefsRepository.sessionMilestoneHours;
     final spec = _resolvedSpec();
     final hourlyCost = (spec.totalWatts / 1000) * rate;
     final dailyCost = hourlyCost * hours;
@@ -57,134 +69,61 @@ class _SettingsPageState extends State<SettingsPage> {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final wide = constraints.maxWidth > 920;
+                final primaryPanel = _SettingsPrimaryPanel(
+                  currencyController: _currencyController,
+                  rateController: _rateController,
+                  hoursController: _hoursController,
+                  milestoneController: _milestoneController,
+                  milestone: milestone,
+                  onChanged: () => setState(() {}),
+                  onSave: _save,
+                  onMilestoneChanged: _handleMilestoneChanged,
+                  onBackToDashboard: () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go('/dashboard');
+                    }
+                  },
+                  onRestartOnboarding: _restartOnboarding,
+                );
+                final secondaryPanel = _SettingsSecondaryPanel(
+                  symbol: symbol,
+                  rate: rate,
+                  hours: hours,
+                  hourlyCost: hourlyCost,
+                  dailyCost: dailyCost,
+                  totalWatts: spec.totalWatts,
+                  milestoneHours: milestone,
+                  spec: spec,
+                );
 
-                return Flex(
-                  direction: wide ? Axis.horizontal : Axis.vertical,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 8,
-                      child: Column(
-                        children: [
-                          Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Chip(
-                                    avatar: Icon(Icons.tune_rounded),
-                                    label: Text('Tracking preferences'),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'Fine-tune your numbers',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineMedium,
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    'These values affect the live dashboard and all forward-looking cost projections.',
-                                    style: Theme.of(context).textTheme.bodyLarge,
-                                  ),
-                                  const SizedBox(height: 20),
-                                  TextField(
-                                    controller: _currencyController,
-                                    maxLength: 4,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Currency symbol',
-                                    ),
-                                    onChanged: (_) => setState(() {}),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  TextField(
-                                    controller: _rateController,
-                                    keyboardType: const TextInputType.numberWithOptions(
-                                      decimal: true,
-                                    ),
-                                    decoration: const InputDecoration(
-                                      labelText: 'Electricity rate',
-                                    ),
-                                    onChanged: (_) => setState(() {}),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  TextField(
-                                    controller: _hoursController,
-                                    keyboardType: const TextInputType.numberWithOptions(
-                                      decimal: true,
-                                    ),
-                                    decoration: const InputDecoration(
-                                      labelText: 'Daily hours',
-                                    ),
-                                    onChanged: (_) => setState(() {}),
-                                  ),
-                                  const SizedBox(height: 18),
-                                  FilledButton(
-                                    onPressed: _save,
-                                    child: const Text('Save Changes'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Reset setup',
-                                    style: Theme.of(context).textTheme.titleLarge,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Restart onboarding if your hardware changed or if you want to rescan the device from scratch.',
-                                    style: Theme.of(context).textTheme.bodyMedium,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Wrap(
-                                    spacing: 12,
-                                    runSpacing: 12,
-                                    children: [
-                                      OutlinedButton(
-                                        onPressed: _restartOnboarding,
-                                        child: const Text('Restart Onboarding'),
-                                      ),
-                                      OutlinedButton(
-                                        onPressed: () => context.go('/dashboard'),
-                                        child: const Text('Back to Dashboard'),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
+                if (wide) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 8,
+                        child: SingleChildScrollView(child: primaryPanel),
                       ),
-                    ),
-                    SizedBox(width: wide ? 16 : 0, height: wide ? 0 : 16),
-                    Expanded(
-                      flex: 5,
-                      child: Column(
-                        children: [
-                          _SettingsPreviewCard(
-                            symbol: symbol,
-                            rate: rate,
-                            hours: hours,
-                            hourlyCost: hourlyCost,
-                            dailyCost: dailyCost,
-                            totalWatts: spec.totalWatts,
-                          ),
-                          const SizedBox(height: 16),
-                          _HardwareSummaryCard(spec: spec),
-                        ],
+                      const SizedBox(width: 16),
+                      Expanded(
+                        flex: 5,
+                        child: SingleChildScrollView(child: secondaryPanel),
                       ),
-                    ),
-                  ],
+                    ],
+                  );
+                }
+
+                return SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      primaryPanel,
+                      const SizedBox(height: 16),
+                      secondaryPanel,
+                    ],
+                  ),
                 );
               },
             ),
@@ -222,11 +161,29 @@ class _SettingsPageState extends State<SettingsPage> {
       dailyHours: hours,
     );
 
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Saved.')));
+    if (!mounted) {
+      return;
     }
+
+    context.read<LiveTimerCubit>().reloadPreferences();
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Saved.')));
+  }
+
+  Future<void> _handleMilestoneChanged(String value) async {
+    setState(() {});
+    final hours = double.tryParse(value.trim());
+    if (hours == null) {
+      return;
+    }
+
+    await _prefsRepository.saveSessionMilestoneHours(hours);
+    if (!mounted) {
+      return;
+    }
+
+    context.read<LiveTimerCubit>().reloadPreferences();
   }
 
   Future<void> _restartOnboarding() async {
@@ -256,12 +213,20 @@ class _SettingsPageState extends State<SettingsPage> {
       return;
     }
 
+    await TrayService().dispose();
+
+    if (!mounted) {
+      return;
+    }
+
+    context.read<LiveTimerCubit>().resetTimer();
     await _prefsRepository.resetOnboarding();
 
     if (!mounted) {
       return;
     }
 
+    context.read<LiveTimerCubit>().reloadPreferences();
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Onboarding reset.')));
@@ -273,7 +238,221 @@ class _SettingsPageState extends State<SettingsPage> {
     _currencyController.dispose();
     _rateController.dispose();
     _hoursController.dispose();
+    _milestoneController.dispose();
     super.dispose();
+  }
+}
+
+class _SettingsPrimaryPanel extends StatelessWidget {
+  const _SettingsPrimaryPanel({
+    required this.currencyController,
+    required this.rateController,
+    required this.hoursController,
+    required this.milestoneController,
+    required this.milestone,
+    required this.onChanged,
+    required this.onSave,
+    required this.onMilestoneChanged,
+    required this.onBackToDashboard,
+    required this.onRestartOnboarding,
+  });
+
+  final TextEditingController currencyController;
+  final TextEditingController rateController;
+  final TextEditingController hoursController;
+  final TextEditingController milestoneController;
+  final double milestone;
+  final VoidCallback onChanged;
+  final VoidCallback onSave;
+  final ValueChanged<String> onMilestoneChanged;
+  final VoidCallback onBackToDashboard;
+  final VoidCallback onRestartOnboarding;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Chip(
+                  avatar: Icon(Icons.tune_rounded),
+                  label: Text('Tracking preferences'),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Fine-tune your numbers',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'These values affect the live dashboard and all forward-looking cost projections.',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: currencyController,
+                  maxLength: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Currency symbol',
+                  ),
+                  onChanged: (_) => onChanged(),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: rateController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Electricity rate',
+                  ),
+                  onChanged: (_) => onChanged(),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: hoursController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(labelText: 'Daily hours'),
+                  onChanged: (_) => onChanged(),
+                ),
+                const SizedBox(height: 18),
+                FilledButton(
+                  onPressed: onSave,
+                  child: const Text('Save Changes'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Notifications',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Use 0 hours if you want to disable milestone alerts.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Session milestone alert'),
+                  subtitle: Text(
+                    'Notify me after ${milestone.toStringAsFixed(1)} hours of tracking',
+                  ),
+                  trailing: SizedBox(
+                    width: 92,
+                    child: TextField(
+                      controller: milestoneController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      textAlign: TextAlign.end,
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        suffixText: 'hrs',
+                      ),
+                      onChanged: onMilestoneChanged,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Reset setup',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Restart onboarding if your hardware changed or if you want to rescan the device from scratch.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    OutlinedButton(
+                      onPressed: onRestartOnboarding,
+                      child: const Text('Restart Onboarding'),
+                    ),
+                    OutlinedButton(
+                      onPressed: onBackToDashboard,
+                      child: const Text('Back to Dashboard'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SettingsSecondaryPanel extends StatelessWidget {
+  const _SettingsSecondaryPanel({
+    required this.symbol,
+    required this.rate,
+    required this.hours,
+    required this.hourlyCost,
+    required this.dailyCost,
+    required this.totalWatts,
+    required this.milestoneHours,
+    required this.spec,
+  });
+
+  final String symbol;
+  final double rate;
+  final double hours;
+  final double hourlyCost;
+  final double dailyCost;
+  final int totalWatts;
+  final double milestoneHours;
+  final SystemSpecModel spec;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SettingsPreviewCard(
+          symbol: symbol,
+          rate: rate,
+          hours: hours,
+          hourlyCost: hourlyCost,
+          dailyCost: dailyCost,
+          totalWatts: totalWatts,
+          milestoneHours: milestoneHours,
+        ),
+        const SizedBox(height: 16),
+        _HardwareSummaryCard(spec: spec),
+      ],
+    );
   }
 }
 
@@ -285,6 +464,7 @@ class _SettingsPreviewCard extends StatelessWidget {
     required this.hourlyCost,
     required this.dailyCost,
     required this.totalWatts,
+    required this.milestoneHours,
   });
 
   final String symbol;
@@ -293,6 +473,7 @@ class _SettingsPreviewCard extends StatelessWidget {
   final double hourlyCost;
   final double dailyCost;
   final int totalWatts;
+  final double milestoneHours;
 
   @override
   Widget build(BuildContext context) {
@@ -317,6 +498,12 @@ class _SettingsPreviewCard extends StatelessWidget {
             _PreviewRow(
               label: 'Usage',
               value: '${hours.toStringAsFixed(1)} hrs/day',
+            ),
+            _PreviewRow(
+              label: 'Milestone',
+              value: milestoneHours == 0
+                  ? 'Alerts off'
+                  : '${milestoneHours.toStringAsFixed(1)} hrs',
             ),
             _PreviewRow(
               label: 'Per hour',
@@ -390,9 +577,9 @@ class _PreviewRow extends StatelessWidget {
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
           ),
         ],

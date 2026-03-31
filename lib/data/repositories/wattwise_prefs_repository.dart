@@ -22,6 +22,7 @@ class WattwisePrefsRepository {
   static const String electricityRateKey = 'electricity_rate';
   static const String currencySymbolKey = 'currency_symbol';
   static const String dailyHoursKey = 'daily_hours';
+  static const String sessionMilestoneHoursKey = 'session_milestone_hours';
 
   static const List<String> onboardingKeys = <String>[
     onboardingCompleteKey,
@@ -39,6 +40,7 @@ class WattwisePrefsRepository {
     electricityRateKey,
     currencySymbolKey,
     dailyHoursKey,
+    sessionMilestoneHoursKey,
   ];
 
   final Box<dynamic> _prefsBox;
@@ -68,6 +70,14 @@ class WattwisePrefsRepository {
     return 8.0;
   }
 
+  double get sessionMilestoneHours {
+    final raw = _prefsBox.get(sessionMilestoneHoursKey, defaultValue: 2.0);
+    if (raw is num) {
+      return raw.toDouble().clamp(0.0, 999.0);
+    }
+    return 2.0;
+  }
+
   SystemSpecModel get systemSpec {
     final defaults = SystemSpecModel.defaults();
 
@@ -76,8 +86,7 @@ class WattwisePrefsRepository {
       gpuType: (_prefsBox.get(gpuTypeKey) as String?) ?? defaults.gpuType,
       gpuName: (_prefsBox.get(gpuNameKey) as String?) ?? defaults.gpuName,
       ramGb: (_prefsBox.get(ramGbKey) as int?) ?? defaults.ramGb,
-      ramSticks:
-          (_prefsBox.get(ramSticksKey) as int?) ?? defaults.ramSticks,
+      ramSticks: (_prefsBox.get(ramSticksKey) as int?) ?? defaults.ramSticks,
       storageCount:
           (_prefsBox.get(storageCountKey) as int?) ?? defaults.storageCount,
       storageType:
@@ -118,6 +127,13 @@ class WattwisePrefsRepository {
     });
   }
 
+  Future<void> saveSessionMilestoneHours(double hours) async {
+    await _prefsBox.put(
+      sessionMilestoneHoursKey,
+      hours.isNegative ? 0.0 : hours.clamp(0.0, 999.0),
+    );
+  }
+
   Future<void> resetOnboarding() async {
     await _prefsBox.deleteAll(onboardingKeys);
   }
@@ -127,5 +143,3 @@ class WattwisePrefsRepository {
     return trimmed.isEmpty ? '\u20B1' : trimmed;
   }
 }
-
-

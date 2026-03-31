@@ -3,7 +3,9 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  screen_retriever_linux
+  local_notifier
+  screen_retriever
+  tray_manager
   window_manager
 )
 
