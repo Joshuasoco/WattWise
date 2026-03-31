@@ -1,20 +1,19 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
+import '../data/repositories/wattwise_prefs_repository.dart';
 import '../features/dashboard/view/dashboard_screen.dart';
 import '../features/onboarding/view/onboarding_shell.dart';
 import '../features/settings/view/settings_page.dart';
 
 class AppRouter {
   static GoRouter createRouter() {
+    final prefsRepository = WattwisePrefsRepository();
+
     return GoRouter(
       initialLocation: '/',
       redirect: (BuildContext context, GoRouterState state) {
-        final box = Hive.box<dynamic>('wattwise_prefs');
-        final onboardingComplete =
-            (box.get('onboarding_complete', defaultValue: false) as bool?) ??
-            false;
+        final onboardingComplete = prefsRepository.onboardingComplete;
 
         if (state.matchedLocation == '/') {
           return onboardingComplete ? '/dashboard' : '/onboarding';

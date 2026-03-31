@@ -1,19 +1,19 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../data/models/system_spec_model.dart';
+import '../../../data/repositories/wattwise_prefs_repository.dart';
 import '../../../data/services/system_scan_service.dart';
 import 'onboarding_state.dart';
 
 class OnboardingCubit extends Cubit<OnboardingState> {
   OnboardingCubit({
-    required Box<dynamic> prefsBox,
+    required WattwisePrefsRepository prefsRepository,
     SystemScanService? scanService,
-  }) : _prefsBox = prefsBox,
+  }) : _prefsRepository = prefsRepository,
        _scanService = scanService ?? SystemScanService(),
        super(OnboardingState.initial());
 
-  final Box<dynamic> _prefsBox;
+  final WattwisePrefsRepository _prefsRepository;
   final SystemScanService _scanService;
 
   void nextStep() {
@@ -87,7 +87,7 @@ class OnboardingCubit extends Cubit<OnboardingState> {
 
   void setRate(double rate, String symbol) {
     final normalizedRate = rate <= 0 ? 0.01 : rate;
-    final normalizedSymbol = symbol.trim().isEmpty ? '₱' : symbol.trim();
+    final normalizedSymbol = symbol.trim().isEmpty ? '\u20B1' : symbol.trim();
     emit(
       state.copyWith(
         electricityRate: normalizedRate,
@@ -106,22 +106,13 @@ class OnboardingCubit extends Cubit<OnboardingState> {
   }
 
   Future<void> completeOnboarding() async {
-    final specs = state.confirmedSpecs;
-
-    await _prefsBox.put('onboarding_complete', true);
-    await _prefsBox.put('cpu_name', specs.cpuName);
-    await _prefsBox.put('gpu_type', specs.gpuType);
-    await _prefsBox.put('gpu_name', specs.gpuName);
-    await _prefsBox.put('ram_gb', specs.ramGb);
-    await _prefsBox.put('ram_sticks', specs.ramSticks);
-    await _prefsBox.put('storage_count', specs.storageCount);
-    await _prefsBox.put('storage_type', specs.storageType);
-    await _prefsBox.put('fan_count', specs.fanCount);
-    await _prefsBox.put('has_rgb', specs.hasRgb);
-    await _prefsBox.put('motherboard', specs.motherboard);
-    await _prefsBox.put('chassis_type', specs.chassisType);
-    await _prefsBox.put('electricity_rate', state.electricityRate);
-    await _prefsBox.put('currency_symbol', state.currencySymbol);
-    await _prefsBox.put('daily_hours', state.dailyHours);
+    await _prefsRepository.saveOnboardingData(
+      specs: state.confirmedSpecs,
+      electricityRate: state.electricityRate,
+      currencySymbol: state.currencySymbol,
+      dailyHours: state.dailyHours,
+    );
   }
 }
+
+

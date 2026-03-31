@@ -18,30 +18,39 @@ class EstimateCards extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isWide = constraints.maxWidth > 700;
+        final isWide = constraints.maxWidth > 760;
         final cards = [
           _EstimateCard(
             label: 'Per Hour',
             value: '$currencySymbol${perHour.toStringAsFixed(2)}',
+            helper: 'Great for short sessions or quick sanity checks.',
+            icon: Icons.schedule_rounded,
           ),
           _EstimateCard(
             label: 'Per Day',
             value: '$currencySymbol${perDay.toStringAsFixed(2)}',
+            helper: 'Uses your saved daily usage setting.',
+            icon: Icons.today_rounded,
           ),
           _EstimateCard(
             label: 'Per Month',
             value: '$currencySymbol${perMonth.toStringAsFixed(2)}',
+            helper: 'Simple 30-day view for budget planning.',
+            icon: Icons.calendar_month_rounded,
           ),
         ];
 
         return isWide
             ? Row(
                 children: [
-                  for (final card in cards)
+                  for (var i = 0; i < cards.length; i++)
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: card,
+                        padding: EdgeInsets.only(
+                          left: i == 0 ? 0 : 6,
+                          right: i == cards.length - 1 ? 0 : 6,
+                        ),
+                        child: cards[i],
                       ),
                     ),
                 ],
@@ -50,7 +59,7 @@ class EstimateCards extends StatelessWidget {
                 children: [
                   for (final card in cards)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.only(bottom: 10),
                       child: card,
                     ),
                 ],
@@ -61,27 +70,47 @@ class EstimateCards extends StatelessWidget {
 }
 
 class _EstimateCard extends StatelessWidget {
-  const _EstimateCard({required this.label, required this.value});
+  const _EstimateCard({
+    required this.label,
+    required this.value,
+    required this.helper,
+    required this.icon,
+  });
 
   final String label;
   final String value;
+  final String helper;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0F0EE),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              alignment: Alignment.center,
+              child: Icon(icon, size: 20),
+            ),
+            const SizedBox(height: 18),
             Text(label, style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               value,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
+            const SizedBox(height: 10),
+            Text(helper, style: Theme.of(context).textTheme.bodyMedium),
           ],
         ),
       ),

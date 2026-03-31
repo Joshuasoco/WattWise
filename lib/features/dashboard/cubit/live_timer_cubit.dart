@@ -1,68 +1,41 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../data/models/system_spec_model.dart';
 import '../../../data/repositories/wattage_preset_repository.dart';
+import '../../../data/repositories/wattwise_prefs_repository.dart';
 import 'live_timer_state.dart';
 
 class LiveTimerCubit extends Cubit<LiveTimerState> {
   LiveTimerCubit({
-    required Box<dynamic> prefsBox,
+    required WattwisePrefsRepository prefsRepository,
     WattagePresetRepository? presetRepository,
-  }) : _prefsBox = prefsBox,
+  }) : _prefsRepository = prefsRepository,
        _presetRepository = presetRepository ?? WattagePresetRepository(),
        super(LiveTimerState.initial()) {
     _initializeFromPrefs();
   }
 
-  final Box<dynamic> _prefsBox;
+  final WattwisePrefsRepository _prefsRepository;
   final WattagePresetRepository _presetRepository;
   StreamSubscription<int>? _tickerSub;
 
   void _initializeFromPrefs() {
-    final cpuName = (_prefsBox.get('cpu_name') as String?) ?? 'Unknown CPU';
-    final gpuType = (_prefsBox.get('gpu_type') as String?) ?? 'integrated';
-    final gpuName =
-        (_prefsBox.get('gpu_name') as String?) ?? 'Integrated Graphics';
-    final ramGb = (_prefsBox.get('ram_gb') as int?) ?? 8;
-    final ramSticks = (_prefsBox.get('ram_sticks') as int?) ?? 1;
-    final storageCount = (_prefsBox.get('storage_count') as int?) ?? 1;
-    final storageType = (_prefsBox.get('storage_type') as String?) ?? 'SSD';
-    final fanCount = (_prefsBox.get('fan_count') as int?) ?? 1;
-    final hasRgb = (_prefsBox.get('has_rgb') as bool?) ?? false;
-    final motherboard =
-        (_prefsBox.get('motherboard') as String?) ?? 'Unknown Motherboard';
-    final chassisType = (_prefsBox.get('chassis_type') as String?) ?? 'desktop';
+    final savedSpec = _prefsRepository.systemSpec;
+    final rate = _prefsRepository.electricityRate;
+    final dailyHours = _prefsRepository.dailyHours;
+    final currencySymbol = _prefsRepository.currencySymbol;
 
-    final currencySymbol = (_prefsBox.get('currency_symbol') as String?) ?? '₱';
-    final rate = ((_prefsBox.get('electricity_rate') as num?) ?? 12).toDouble();
-    final dailyHours = ((_prefsBox.get('daily_hours') as num?) ?? 8).toDouble();
-
-    final cpuTdp = _presetRepository.resolveCpuTdp(cpuName);
-    final gpuWatts = _presetRepository.resolveGpuWatts(gpuName, gpuType);
-    final storageWattsEach = storageType == 'HDD' ? 7 : 3;
-
-    final spec = SystemSpecModel(
-      cpuName: cpuName,
-      cpuTdpWatts: cpuTdp,
-      gpuType: gpuType,
-      gpuName: gpuName,
-      gpuWatts: gpuWatts,
-      ramGb: ramGb,
-      ramSticks: ramSticks,
-      storageCount: storageCount,
-      storageType: storageType,
-      storageWattsEach: storageWattsEach,
-      fanCount: fanCount,
-      hasRgb: hasRgb,
-      rgbWatts: hasRgb ? 10 : 0,
-      motherboard: motherboard,
-      chassisType: chassisType,
+    final spec = savedSpec.copyWith(
+      cpuTdpWatts: _presetRepository.resolveCpuTdp(savedSpec.cpuName),
+      gpuWatts: _presetRepository.resolveGpuWatts(
+        savedSpec.gpuName,
+        savedSpec.gpuType,
+      ),
+      storageWattsEach: savedSpec.storageType == 'HDD' ? 7 : 3,
+      rgbWatts: savedSpec.hasRgb ? 10 : 0,
     );
-
-    final cps = spec.costPerSecond(rate);
 
     emit(
       state.copyWith(
@@ -70,7 +43,7 @@ class LiveTimerCubit extends Cubit<LiveTimerState> {
         currencySymbol: currencySymbol,
         ratePerKwh: rate,
         dailyHours: dailyHours,
-        costPerSecond: cps,
+        costPerSecond: spec.costPerSecond(rate),
       ),
     );
 

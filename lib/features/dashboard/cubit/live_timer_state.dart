@@ -5,7 +5,7 @@ import '../../../data/models/system_spec_model.dart';
 class LiveTimerState extends Equatable {
   const LiveTimerState({
     required this.spec,
-    this.currencySymbol = '₱',
+    this.currencySymbol = '\u20B1',
     this.ratePerKwh = 12,
     this.dailyHours = 8,
     this.elapsedSeconds = 0,
@@ -65,3 +65,5 @@ class LiveTimerState extends Equatable {
     isRunning,
   ];
 }
+
+

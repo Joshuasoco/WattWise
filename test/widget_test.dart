@@ -10,11 +10,12 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-import 'package:watt_tracker/data/local/hive_boxes.dart';
 import 'package:watt_tracker/data/local/hive_adapters.dart';
+import 'package:watt_tracker/data/local/hive_boxes.dart';
 import 'package:watt_tracker/data/models/component_model.dart';
 import 'package:watt_tracker/data/models/device_model.dart';
 import 'package:watt_tracker/data/models/session_model.dart';
+import 'package:watt_tracker/data/repositories/wattwise_prefs_repository.dart';
 import 'package:watt_tracker/main.dart';
 
 void main() {
@@ -48,21 +49,24 @@ void main() {
     ]);
 
     final prefs = Hive.box<dynamic>(HiveBoxes.wattwisePrefs);
-    await prefs.put('onboarding_complete', true);
-    await prefs.put('cpu_name', 'Test CPU');
-    await prefs.put('gpu_type', 'integrated');
-    await prefs.put('gpu_name', 'Integrated Graphics');
-    await prefs.put('ram_gb', 8);
-    await prefs.put('ram_sticks', 1);
-    await prefs.put('storage_count', 1);
-    await prefs.put('storage_type', 'SSD');
-    await prefs.put('fan_count', 1);
-    await prefs.put('has_rgb', false);
-    await prefs.put('motherboard', 'Test Board');
-    await prefs.put('chassis_type', 'desktop');
-    await prefs.put('electricity_rate', 12.0);
-    await prefs.put('currency_symbol', '₱');
-    await prefs.put('daily_hours', 8.0);
+    await prefs.put(WattwisePrefsRepository.onboardingCompleteKey, true);
+    await prefs.put(WattwisePrefsRepository.cpuNameKey, 'Test CPU');
+    await prefs.put(WattwisePrefsRepository.gpuTypeKey, 'integrated');
+    await prefs.put(
+      WattwisePrefsRepository.gpuNameKey,
+      'Integrated Graphics',
+    );
+    await prefs.put(WattwisePrefsRepository.ramGbKey, 8);
+    await prefs.put(WattwisePrefsRepository.ramSticksKey, 1);
+    await prefs.put(WattwisePrefsRepository.storageCountKey, 1);
+    await prefs.put(WattwisePrefsRepository.storageTypeKey, 'SSD');
+    await prefs.put(WattwisePrefsRepository.fanCountKey, 1);
+    await prefs.put(WattwisePrefsRepository.hasRgbKey, false);
+    await prefs.put(WattwisePrefsRepository.motherboardKey, 'Test Board');
+    await prefs.put(WattwisePrefsRepository.chassisTypeKey, 'desktop');
+    await prefs.put(WattwisePrefsRepository.electricityRateKey, 12.0);
+    await prefs.put(WattwisePrefsRepository.currencySymbolKey, '\u20B1');
+    await prefs.put(WattwisePrefsRepository.dailyHoursKey, 8.0);
   });
 
   tearDownAll(() async {
@@ -76,3 +80,6 @@ void main() {
     expect(find.text('Test CPU'), findsOneWidget);
   });
 }
+
+
+

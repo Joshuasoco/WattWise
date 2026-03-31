@@ -58,157 +58,239 @@ class _Step2ConfirmSpecsState extends State<Step2ConfirmSpecs> {
       padding: const EdgeInsets.all(24),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 760),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Confirm your hardware',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'You can edit any field before continuing. If Windows blocks auto-detection, copy one of the commands below and paste the result here.',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              if (needsManualHelp) ...[
-                const SizedBox(height: 16),
-                _DetectionHelpCard(onCopy: _copyCommand),
-              ],
-              const SizedBox(height: 16),
-              TextField(
-                controller: _cpuController,
-                decoration: const InputDecoration(labelText: 'CPU name'),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _chassisType,
-                decoration: const InputDecoration(labelText: 'Chassis type'),
-                items: const [
-                  DropdownMenuItem(value: 'laptop', child: Text('Laptop')),
-                  DropdownMenuItem(value: 'desktop', child: Text('Desktop')),
-                  DropdownMenuItem(
-                    value: 'mini_desktop',
-                    child: Text('Mini Desktop'),
+          constraints: const BoxConstraints(maxWidth: 980),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: const [
+                      _InfoPill(
+                        icon: Icons.edit_note_rounded,
+                        label: 'Review before saving',
+                      ),
+                      _InfoPill(
+                        icon: Icons.tune_rounded,
+                        label: 'Adjust any detected value',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'Confirm your hardware',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'This is the last chance to correct your setup before we turn it into a power profile. If Windows blocked something, you can manually look it up below.',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  if (needsManualHelp) ...[
+                    const SizedBox(height: 18),
+                    _DetectionHelpCard(onCopy: _copyCommand),
+                  ],
+                  const SizedBox(height: 22),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final wide = constraints.maxWidth > 760;
+
+                      return Wrap(
+                        spacing: 16,
+                        runSpacing: 16,
+                        children: [
+                          _SectionCard(
+                            width: wide
+                                ? (constraints.maxWidth - 16) / 2
+                                : constraints.maxWidth,
+                            title: 'Core components',
+                            child: Column(
+                              children: [
+                                TextField(
+                                  controller: _cpuController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'CPU name',
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                TextField(
+                                  controller: _gpuController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'GPU name',
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                TextField(
+                                  controller: _ramGbController,
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(
+                                    labelText: 'RAM GB',
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                TextField(
+                                  controller: _motherboardController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Motherboard',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          _SectionCard(
+                            width: wide
+                                ? (constraints.maxWidth - 16) / 2
+                                : constraints.maxWidth,
+                            title: 'Power assumptions',
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                DropdownButtonFormField<String>(
+                                  initialValue: _chassisType,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Chassis type',
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(
+                                      value: 'laptop',
+                                      child: Text('Laptop'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'desktop',
+                                      child: Text('Desktop'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'mini_desktop',
+                                      child: Text('Mini Desktop'),
+                                    ),
+                                  ],
+                                  onChanged: (value) {
+                                    if (value == null) return;
+                                    setState(() => _chassisType = value);
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+                                const Text('GPU type'),
+                                const SizedBox(height: 6),
+                                SegmentedButton<String>(
+                                  segments: const [
+                                    ButtonSegment(
+                                      value: 'integrated',
+                                      label: Text('Integrated'),
+                                    ),
+                                    ButtonSegment(
+                                      value: 'dedicated',
+                                      label: Text('Dedicated'),
+                                    ),
+                                  ],
+                                  selected: {_gpuType},
+                                  onSelectionChanged: (selection) => setState(
+                                    () => _gpuType = selection.first,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                _IntegerField(
+                                  label: 'RAM sticks',
+                                  initial: _ramSticks,
+                                  min: 1,
+                                  onChanged: (value) => _ramSticks = value,
+                                ),
+                                const SizedBox(height: 12),
+                                _IntegerField(
+                                  label: 'Storage count',
+                                  initial: _storageCount,
+                                  min: 1,
+                                  onChanged: (value) => _storageCount = value,
+                                ),
+                                const SizedBox(height: 12),
+                                const Text('Storage type'),
+                                const SizedBox(height: 6),
+                                SegmentedButton<String>(
+                                  segments: const [
+                                    ButtonSegment(
+                                      value: 'SSD',
+                                      label: Text('SSD'),
+                                    ),
+                                    ButtonSegment(
+                                      value: 'HDD',
+                                      label: Text('HDD'),
+                                    ),
+                                  ],
+                                  selected: {_storageType},
+                                  onSelectionChanged: (selection) {
+                                    setState(() => _storageType = selection.first);
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                                Text('Fan count: ${_fanCount.round()}'),
+                                Slider(
+                                  min: 0,
+                                  max: 10,
+                                  divisions: 10,
+                                  value: _fanCount,
+                                  label: _fanCount.round().toString(),
+                                  onChanged: (value) => setState(() => _fanCount = value),
+                                ),
+                                SwitchListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  title: const Text('Has RGB lighting'),
+                                  value: _hasRgb,
+                                  onChanged: (value) => setState(() => _hasRgb = value),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    onPressed: () {
+                      final cpuName = _fallbackText(
+                        _cpuController.text,
+                        specs.cpuName,
+                      );
+                      final gpuName = _fallbackText(
+                        _gpuController.text,
+                        specs.gpuName,
+                      );
+                      final motherboard = _fallbackText(
+                        _motherboardController.text,
+                        specs.motherboard,
+                      );
+                      final ramGb = int.tryParse(_ramGbController.text.trim());
+
+                      final updated = specs.copyWith(
+                        cpuName: cpuName,
+                        cpuTdpWatts: _presetRepository.resolveCpuTdp(cpuName),
+                        chassisType: _chassisType,
+                        gpuType: _gpuType,
+                        gpuName: gpuName,
+                        gpuWatts: _presetRepository.resolveGpuWatts(
+                          gpuName,
+                          _gpuType,
+                        ),
+                        ramGb: ramGb == null || ramGb < 1 ? specs.ramGb : ramGb,
+                        ramSticks: _ramSticks,
+                        storageCount: _storageCount,
+                        storageType: _storageType,
+                        storageWattsEach: _storageType == 'HDD' ? 7 : 3,
+                        fanCount: _fanCount.round(),
+                        hasRgb: _hasRgb,
+                        rgbWatts: _hasRgb ? 10 : 0,
+                        motherboard: motherboard,
+                      );
+                      widget.onContinue(updated);
+                    },
+                    child: const Text('Looks good, continue'),
                   ),
                 ],
-                onChanged: (value) {
-                  if (value == null) return;
-                  setState(() => _chassisType = value);
-                },
               ),
-              const SizedBox(height: 12),
-              const Text('GPU Type'),
-              const SizedBox(height: 6),
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'integrated', label: Text('Integrated')),
-                  ButtonSegment(value: 'dedicated', label: Text('Dedicated')),
-                ],
-                selected: {_gpuType},
-                onSelectionChanged: (selection) =>
-                    setState(() => _gpuType = selection.first),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _gpuController,
-                decoration: const InputDecoration(labelText: 'GPU name'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _ramGbController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'RAM GB'),
-              ),
-              const SizedBox(height: 12),
-              _IntegerField(
-                label: 'RAM sticks',
-                initial: _ramSticks,
-                min: 1,
-                onChanged: (value) => _ramSticks = value,
-              ),
-              const SizedBox(height: 12),
-              _IntegerField(
-                label: 'Storage count',
-                initial: _storageCount,
-                min: 1,
-                onChanged: (value) => _storageCount = value,
-              ),
-              const SizedBox(height: 12),
-              const Text('Storage Type'),
-              const SizedBox(height: 6),
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'SSD', label: Text('SSD')),
-                  ButtonSegment(value: 'HDD', label: Text('HDD')),
-                ],
-                selected: {_storageType},
-                onSelectionChanged: (selection) {
-                  setState(() => _storageType = selection.first);
-                },
-              ),
-              const SizedBox(height: 12),
-              Text('Fan count: ${_fanCount.round()}'),
-              Slider(
-                min: 0,
-                max: 10,
-                divisions: 10,
-                value: _fanCount,
-                label: _fanCount.round().toString(),
-                onChanged: (value) => setState(() => _fanCount = value),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Has RGB'),
-                value: _hasRgb,
-                onChanged: (value) => setState(() => _hasRgb = value),
-              ),
-              TextField(
-                controller: _motherboardController,
-                decoration: const InputDecoration(labelText: 'Motherboard'),
-              ),
-              const SizedBox(height: 20),
-              FilledButton(
-                onPressed: () {
-                  final cpuName = _fallbackText(
-                    _cpuController.text,
-                    specs.cpuName,
-                  );
-                  final gpuName = _fallbackText(
-                    _gpuController.text,
-                    specs.gpuName,
-                  );
-                  final motherboard = _fallbackText(
-                    _motherboardController.text,
-                    specs.motherboard,
-                  );
-                  final ramGb = int.tryParse(_ramGbController.text.trim());
-
-                  final updated = specs.copyWith(
-                    cpuName: cpuName,
-                    cpuTdpWatts: _presetRepository.resolveCpuTdp(cpuName),
-                    chassisType: _chassisType,
-                    gpuType: _gpuType,
-                    gpuName: gpuName,
-                    gpuWatts: _presetRepository.resolveGpuWatts(
-                      gpuName,
-                      _gpuType,
-                    ),
-                    ramGb: ramGb == null || ramGb < 1 ? specs.ramGb : ramGb,
-                    ramSticks: _ramSticks,
-                    storageCount: _storageCount,
-                    storageType: _storageType,
-                    storageWattsEach: _storageType == 'HDD' ? 7 : 3,
-                    fanCount: _fanCount.round(),
-                    hasRgb: _hasRgb,
-                    rgbWatts: _hasRgb ? 10 : 0,
-                    motherboard: motherboard,
-                  );
-                  widget.onContinue(updated);
-                },
-                child: const Text('Looks good, continue'),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -244,6 +326,68 @@ class _Step2ConfirmSpecsState extends State<Step2ConfirmSpecs> {
   }
 }
 
+class _InfoPill extends StatelessWidget {
+  const _InfoPill({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18),
+          const SizedBox(width: 8),
+          Text(label, style: Theme.of(context).textTheme.labelLarge),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({
+    required this.width,
+    required this.title,
+    required this.child,
+  });
+
+  final double width;
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F3F1),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Theme.of(context).colorScheme.outline),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 14),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _DetectionHelpCard extends StatelessWidget {
   const _DetectionHelpCard({required this.onCopy});
 
@@ -275,7 +419,6 @@ class _DetectionHelpCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -322,8 +465,9 @@ class _CommandRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
+        color: Colors.white,
         border: Border.all(color: Theme.of(context).dividerColor),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

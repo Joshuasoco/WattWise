@@ -8,7 +8,7 @@ class OnboardingState extends Equatable {
     required this.scannedSpecs,
     required this.confirmedSpecs,
     this.electricityRate = 12.0,
-    this.currencySymbol = '₱',
+    this.currencySymbol = '\u20B1',
     this.dailyHours = 8,
     this.isScanning = false,
     this.scanError,
@@ -93,3 +93,5 @@ class OnboardingState extends Equatable {
     motherboardScanned,
   ];
 }
+
+

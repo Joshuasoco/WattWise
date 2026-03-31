@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../../data/repositories/wattwise_prefs_repository.dart';
 import '../cubit/onboarding_cubit.dart';
 import '../cubit/onboarding_state.dart';
 import 'steps/step_0_welcome.dart';
@@ -19,8 +19,9 @@ class OnboardingShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          OnboardingCubit(prefsBox: Hive.box<dynamic>('wattwise_prefs')),
+      create: (_) => OnboardingCubit(
+        prefsRepository: WattwisePrefsRepository(),
+      ),
       child: const _OnboardingView(),
     );
   }
@@ -146,4 +147,3 @@ class _OnboardingViewState extends State<_OnboardingView> {
     super.dispose();
   }
 }
-

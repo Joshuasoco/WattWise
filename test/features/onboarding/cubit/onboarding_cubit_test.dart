@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:watt_tracker/data/models/system_spec_model.dart';
+import 'package:watt_tracker/data/repositories/wattwise_prefs_repository.dart';
 import 'package:watt_tracker/data/services/system_scan_service.dart';
 import 'package:watt_tracker/features/onboarding/cubit/onboarding_cubit.dart';
 
@@ -82,7 +83,7 @@ void main() {
 
   test('startScan reveals fields progressively before completion', () async {
     final cubit = OnboardingCubit(
-      prefsBox: prefsBox,
+      prefsRepository: WattwisePrefsRepository(prefsBox: prefsBox),
       scanService: FakeProgressScanService(),
     );
     final emittedStates = <dynamic>[];
