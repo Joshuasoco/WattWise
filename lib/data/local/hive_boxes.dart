@@ -1,0 +1,44 @@
+import 'package:hive_flutter/hive_flutter.dart';
+
+import '../models/component_model.dart';
+import '../models/device_model.dart';
+import '../models/session_model.dart';
+import 'hive_adapters.dart';
+
+class HiveBoxes {
+  static const String devices = 'devices_box';
+  static const String components = 'components_box';
+  static const String sessions = 'sessions_box';
+}
+
+class HiveBootstrap {
+  static Future<void> initialize() async {
+    await Hive.initFlutter();
+
+    _registerAdapters();
+
+    await Future.wait([
+      Hive.openBox<DeviceModel>(HiveBoxes.devices),
+      Hive.openBox<ComponentModel>(HiveBoxes.components),
+      Hive.openBox<SessionModel>(HiveBoxes.sessions),
+    ]);
+  }
+
+  static void _registerAdapters() {
+    if (!Hive.isAdapterRegistered(0)) {
+      Hive.registerAdapter(DeviceTypeAdapter());
+    }
+    if (!Hive.isAdapterRegistered(1)) {
+      Hive.registerAdapter(DeviceModelAdapter());
+    }
+    if (!Hive.isAdapterRegistered(2)) {
+      Hive.registerAdapter(ComponentTypeAdapter());
+    }
+    if (!Hive.isAdapterRegistered(3)) {
+      Hive.registerAdapter(ComponentModelAdapter());
+    }
+    if (!Hive.isAdapterRegistered(4)) {
+      Hive.registerAdapter(SessionModelAdapter());
+    }
+  }
+}
