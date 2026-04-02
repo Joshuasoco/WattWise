@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/repositories/wattwise_prefs_repository.dart';
+import '../features/audit/view/audit_page.dart';
 import '../features/dashboard/view/dashboard_screen.dart';
 import '../features/onboarding/view/onboarding_shell.dart';
 import '../features/settings/view/settings_page.dart';
@@ -30,7 +31,12 @@ class AppRouter {
         return null;
       },
       routes: <RouteBase>[
-        GoRoute(path: '/', builder: (_, __) => const SizedBox.shrink()),
+        GoRoute(
+          path: '/',
+          builder: (BuildContext context, GoRouterState state) {
+            return const SizedBox.shrink();
+          },
+        ),
         GoRoute(
           path: '/onboarding',
           builder: (BuildContext context, GoRouterState state) {
@@ -47,6 +53,12 @@ class AppRouter {
           path: '/settings',
           builder: (BuildContext context, GoRouterState state) {
             return const SettingsPage();
+          },
+        ),
+        GoRoute(
+          path: '/audit',
+          builder: (BuildContext context, GoRouterState state) {
+            return const AuditPage();
           },
         ),
       ],

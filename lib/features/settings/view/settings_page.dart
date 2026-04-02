@@ -78,6 +78,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   onChanged: () => setState(() {}),
                   onSave: _save,
                   onMilestoneChanged: _handleMilestoneChanged,
+                  onRunAudit: () => context.push('/audit'),
                   onBackToDashboard: () {
                     if (context.canPop()) {
                       context.pop();
@@ -253,6 +254,7 @@ class _SettingsPrimaryPanel extends StatelessWidget {
     required this.onChanged,
     required this.onSave,
     required this.onMilestoneChanged,
+    required this.onRunAudit,
     required this.onBackToDashboard,
     required this.onRestartOnboarding,
   });
@@ -265,6 +267,7 @@ class _SettingsPrimaryPanel extends StatelessWidget {
   final VoidCallback onChanged;
   final VoidCallback onSave;
   final ValueChanged<String> onMilestoneChanged;
+  final VoidCallback onRunAudit;
   final VoidCallback onBackToDashboard;
   final VoidCallback onRestartOnboarding;
 
@@ -395,6 +398,11 @@ class _SettingsPrimaryPanel extends StatelessWidget {
                   spacing: 12,
                   runSpacing: 12,
                   children: [
+                    FilledButton.tonalIcon(
+                      onPressed: onRunAudit,
+                      icon: const Icon(Icons.bolt_rounded),
+                      label: const Text('Run Audit Again'),
+                    ),
                     OutlinedButton(
                       onPressed: onRestartOnboarding,
                       child: const Text('Restart Onboarding'),

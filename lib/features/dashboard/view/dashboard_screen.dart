@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -120,6 +120,12 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
               const SizedBox(width: 8),
               IconButton(
+                onPressed: () => context.push('/audit'),
+                icon: const Icon(Icons.insights_rounded),
+                tooltip: 'Run energy audit',
+              ),
+              const SizedBox(width: 4),
+              IconButton(
                 onPressed: () => context.push('/settings'),
                 icon: const Icon(Icons.tune_rounded),
                 tooltip: 'Settings',
@@ -162,6 +168,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                           spacing: 12,
                           runSpacing: 12,
                           children: [
+                            OutlinedButton.icon(
+                              onPressed: () => context.push('/audit'),
+                              icon: const Icon(Icons.analytics_outlined),
+                              label: const Text('Run energy audit'),
+                            ),
                             FilledButton.tonalIcon(
                               onPressed: _handleTrackingToggle,
                               style: FilledButton.styleFrom(

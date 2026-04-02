@@ -11,6 +11,7 @@ class HiveBoxes {
   static const String sessions = 'sessions_box';
   static const String appPreferences = 'app_preferences_box';
   static const String wattwisePrefs = 'wattwise_prefs';
+  static const String energyAudit = 'energy_audit';
 }
 
 class HiveBootstrap {
@@ -25,6 +26,7 @@ class HiveBootstrap {
       Hive.openBox<SessionModel>(HiveBoxes.sessions),
       Hive.openBox<dynamic>(HiveBoxes.appPreferences),
       Hive.openBox<dynamic>(HiveBoxes.wattwisePrefs),
+      Hive.openBox<dynamic>(HiveBoxes.energyAudit),
     ]);
   }
 
